@@ -69,6 +69,7 @@ public final class VanillaLaunchPluginManager {
             Files.createDirectories(pluginsDir);
         }
 
+        pluginScanner.findConflicts();
         plugins = pluginScanner.getPlugins();
         VanillaLaunch.getLogger().info("{} plugin(s) found", plugins.size());
     }

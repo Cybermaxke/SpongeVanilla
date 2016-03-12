@@ -148,7 +148,7 @@ public class VanillaPluginManager implements PluginManager {
         try {
             Class<?> pluginClass = Class.forName(candidate.getPluginClass());
             SpongeExtension ext = metadata.getExtension("sponge");
-            PluginContainer container = new VanillaPluginContainer(id, pluginClass,
+            PluginContainer container = new VanillaPluginContainer(id, candidate.getUnqualifiedId(), pluginClass,
                     metadata.getName(), metadata.getVersion(), metadata.getDescription(), metadata.getUrl(), metadata.getAuthors(),
                     ext != null ? ext.getAssetDirectory() : null, candidate.getSource());
 

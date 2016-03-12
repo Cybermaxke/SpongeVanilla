@@ -48,6 +48,7 @@ import javax.annotation.Nullable;
 public final class PluginCandidate {
 
     private final String id;
+    private final String unqualifiedId;
     private final String pluginClass;
     private final Optional<Path> source;
 
@@ -64,11 +65,22 @@ public final class PluginCandidate {
         this.pluginClass = checkNotNull(pluginClass, "pluginClass");
         this.source = Optional.ofNullable(source);
         this.metadata = checkNotNull(metadata, "metadata");
+
         this.id = metadata.getId();
+        this.unqualifiedId = getUnqualifiedId(this.id);
+    }
+
+    private static String getUnqualifiedId(String id) {
+        int pos = id.lastIndexOf('.');
+        return pos >= 0 ? id.substring(pos + 1) : id;
     }
 
     public String getId() {
         return this.id;
+    }
+
+    public String getUnqualifiedId() {
+        return this.unqualifiedId;
     }
 
     public String getPluginClass() {

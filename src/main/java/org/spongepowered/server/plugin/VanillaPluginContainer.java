@@ -61,11 +61,11 @@ public final class VanillaPluginContainer extends AbstractPluginContainer implem
 
     private final Injector injector;
 
-    VanillaPluginContainer(String id, Class<?> pluginClass,
+    VanillaPluginContainer(String id, String unqualifiedId, Class<?> pluginClass,
             @Nullable String name, @Nullable String version, @Nullable String description, @Nullable String url, List<String> authors,
             @Nullable String assets, Optional<Path> source) {
         this.id = id;
-        this.unqualifiedId = getUnqualifiedId(id);
+        this.unqualifiedId = unqualifiedId;
 
         this.name = Optional.ofNullable(name);
         this.version = Optional.ofNullable(version);

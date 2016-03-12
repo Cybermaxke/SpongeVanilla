@@ -27,6 +27,8 @@ package org.spongepowered.server.launch.plugin;
 import static java.util.stream.Collectors.joining;
 import static org.spongepowered.api.plugin.Plugin.ID_PATTERN;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.spongepowered.plugin.meta.McModInfo;
@@ -82,6 +84,7 @@ final class PluginScanner {
     private static final Logger logger = VanillaLaunch.getLogger();
 
     private final Map<String, PluginCandidate> plugins = new HashMap<>();
+    private final Multimap<String, PluginCandidate> unqualifiedPlugins = ArrayListMultimap.create();
     private final Set<String> pluginClasses = new HashSet<>();
 
     @Nullable private FileVisitor<Path> classFileVisitor;
@@ -303,10 +306,36 @@ final class PluginScanner {
             }
 
             this.plugins.put(id, candidate);
+            this.unqualifiedPlugins.put(candidate.getUnqualifiedId(), candidate);
             return;
         } else {
             logger.error("Skipping duplicate plugin class {} from {}", pluginClass, candidate.getDisplaySource());
         }
+    }
+
+    void findConflicts() {
+        this.unqualifiedPlugins.asMap().forEach((id, candidates) -> {
+            if (candidates.size() > 1) {
+                // Duplicates found
+                StringBuilder conflicts = new StringBuilder();
+                boolean first = true;
+                for (PluginCandidate candidate : candidates) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        conflicts.append(", ");
+                    }
+
+                    conflicts.append('\'').append(candidate.getId()).append('\'')
+                            .append(" from ").append(candidate.getDisplaySource());
+
+                    // Don't load conflicting plugin
+                    this.plugins.remove(candidate.getId());
+                }
+
+                logger.error("Skipping plugins with conflicting plugin ID '{}': {}", id, conflicts);
+            }
+        });
     }
 
     private PluginCandidate scanClassFile(InputStream in, @Nullable Path source) throws IOException {

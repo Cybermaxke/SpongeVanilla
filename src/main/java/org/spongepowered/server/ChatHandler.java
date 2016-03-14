@@ -24,12 +24,15 @@
  */
 package org.spongepowered.server;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.event.impl.AbstractChatEvent;
 import org.spongepowered.api.event.message.MessageChannelEvent;
 import org.spongepowered.api.text.chat.ChatTypes;
 import org.spongepowered.api.util.Tuple;
 import org.spongepowered.common.SpongeImpl;
 
+import java.util.LinkedList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 
@@ -50,14 +53,40 @@ public class ChatHandler implements Runnable {
 
             Player sender = data.getFirst();
             MessageChannelEvent.Chat event = data.getSecond();
-            if (!SpongeImpl.postEvent(event) && !event.isMessageCancelled() && sender.isOnline()) {
+            if (!SpongeImpl.postEvent(event) && isRelevant(sender, event)) {
                 SpongeImpl.getLogger().info("Sending chat message.");
-                event.getChannel().ifPresent(channel ->
-                        channel.send(sender, event.getMessage(), ChatTypes.CHAT));
+
+                // do permission checks on main thread
+                LinkedList<AbstractChatEvent.PermissionCheck> checks = event.getPermissionChecks();
+                ListenableFuture<Object> lastCheck = null;
+                for (int i = 0; i < checks.size(); i++) {
+                    ListenableFuture<Object> future = checks.get(i).post();
+                    if (i == checks.size() - 1) {
+                        lastCheck = future;
+                    }
+                }
+
+                // send message when checks are completed
+                if (lastCheck != null) {
+                    lastCheck.addListener(() -> complete(sender, event), Runnable::run);
+                } else {
+                    complete(sender, event);
+                }
             } else {
                 SpongeImpl.getLogger().info("Chat message cancelled.");
             }
         }
+    }
+
+    private void complete(Player sender, MessageChannelEvent.Chat event) {
+        if (isRelevant(sender, event)) {
+            sender.getWorld().post(() -> event.getChannel().ifPresent(channel ->
+                    channel.send(sender, event.getMessage(), ChatTypes.CHAT)));
+        }
+    }
+
+    private boolean isRelevant(Player sender, MessageChannelEvent.Chat event) {
+        return sender.isOnline() && !event.isCancelled() && !event.isMessageCancelled();
     }
 
     public void postEvent(Player sender, MessageChannelEvent.Chat event) {

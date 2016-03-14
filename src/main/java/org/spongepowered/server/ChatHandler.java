@@ -29,32 +29,42 @@ import org.spongepowered.api.event.message.MessageChannelEvent;
 import org.spongepowered.api.text.chat.ChatTypes;
 import org.spongepowered.common.SpongeImpl;
 
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 
-public class ChatThread extends Thread {
+public class ChatHandler implements Runnable {
 
-    public final Queue<MessageChannelEvent.Chat> eventQueue = new ConcurrentLinkedQueue<>();
-
-    public ChatThread() {
-        super("chat");
-    }
+    private final BlockingQueue<MessageChannelEvent.Chat> eventQueue = new SynchronousQueue<>();
+    private boolean active = true;
 
     @Override
     public void run() {
-        while (true) {
-            while (eventQueue.peek() != null) {
-                SpongeImpl.getLogger().info("Posting new event to event bus.");
-                MessageChannelEvent.Chat event = eventQueue.poll();
-                if (!SpongeImpl.postEvent(event) && !event.isMessageCancelled()) {
-                    SpongeImpl.getLogger().info("Sending chat message.");
-                    event.getChannel().ifPresent(channel ->
-                            channel.send(event.getCause().first(Player.class), event.getMessage(), ChatTypes.CHAT));
-                } else {
-                    SpongeImpl.getLogger().info("Chat message cancelled.");
-                }
+        while (active) {
+
+            MessageChannelEvent.Chat event;
+            try {
+                event = eventQueue.take();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                continue;
+            }
+
+            if (!SpongeImpl.postEvent(event) && !event.isMessageCancelled()) {
+                SpongeImpl.getLogger().info("Sending chat message.");
+                event.getChannel().ifPresent(channel ->
+                        channel.send(event.getCause().first(Player.class), event.getMessage(), ChatTypes.CHAT));
+            } else {
+                SpongeImpl.getLogger().info("Chat message cancelled.");
             }
         }
+    }
+
+    public void postEvent(MessageChannelEvent.Chat event) {
+        this.eventQueue.add(event);
+    }
+
+    public void kill() {
+        active = false;
     }
 
 }

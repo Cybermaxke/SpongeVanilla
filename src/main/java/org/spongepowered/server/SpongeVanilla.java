@@ -80,7 +80,7 @@ public final class SpongeVanilla extends AbstractPluginContainer {
     public static final SpongeVanilla INSTANCE = new SpongeVanilla();
 
     private final SpongeGame game;
-    public final ChatThread chatThread = new ChatThread();
+    private final ChatHandler chatHandler = new ChatHandler();
 
     private SpongeVanilla() {
         Guice.createInjector(new VanillaGuiceModule(this, LogManager.getLogger(SpongeImpl.ECOSYSTEM_NAME))).getInstance(SpongeImpl.class);
@@ -89,7 +89,7 @@ public final class SpongeVanilla extends AbstractPluginContainer {
 
         RegistryHelper.setFinalStatic(Sponge.class, "game", this.game);
 
-        this.chatThread.start();
+        new Thread(chatHandler, "chat").start();
     }
 
     public static void main(String[] args) {
@@ -192,6 +192,10 @@ public final class SpongeVanilla extends AbstractPluginContainer {
     public void onServerStopped() throws IOException {
         SpongeImpl.postState(GameStoppedServerEvent.class, GameState.SERVER_STOPPED);
         ((SqlServiceImpl) this.game.getServiceManager().provideUnchecked(SqlService.class)).close();
+    }
+
+    public ChatHandler getChatHandler() {
+        return this.chatHandler;
     }
 
     @Override

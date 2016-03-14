@@ -121,7 +121,7 @@ public abstract class MixinNetHandlerPlayServer implements RemoteConnection, IMi
                 new MessageEvent.MessageFormatter(message[0], message[1]), Text.of(s), false
         );
         SpongeImpl.getLogger().info("Processing chat message.");
-        SpongeVanilla.INSTANCE.chatThread.eventQueue.add(event);
+        SpongeVanilla.INSTANCE.getChatHandler().postEvent(event);
     }
 
     @Redirect(method = "processChatMessage", at = @At(value = "INVOKE",

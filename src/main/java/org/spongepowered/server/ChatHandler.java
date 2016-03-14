@@ -27,6 +27,7 @@ package org.spongepowered.server;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.message.MessageChannelEvent;
 import org.spongepowered.api.text.chat.ChatTypes;
+import org.spongepowered.api.util.Tuple;
 import org.spongepowered.common.SpongeImpl;
 
 import java.util.concurrent.BlockingQueue;
@@ -34,37 +35,33 @@ import java.util.concurrent.SynchronousQueue;
 
 public class ChatHandler implements Runnable {
 
-    private final BlockingQueue<MessageChannelEvent.Chat> eventQueue = new SynchronousQueue<>();
-    private boolean active = true;
+    private final BlockingQueue<Tuple<Player, MessageChannelEvent.Chat>> eventQueue = new SynchronousQueue<>();
 
     @Override
     public void run() {
-        while (active) {
-
-            MessageChannelEvent.Chat event;
+        while (true) {
+            Tuple<Player, MessageChannelEvent.Chat> data;
             try {
-                event = eventQueue.take();
+                data = eventQueue.take();
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                continue;
+                break;
             }
 
-            if (!SpongeImpl.postEvent(event) && !event.isMessageCancelled()) {
+            Player sender = data.getFirst();
+            MessageChannelEvent.Chat event = data.getSecond();
+            if (!SpongeImpl.postEvent(event) && !event.isMessageCancelled() && sender.isOnline()) {
                 SpongeImpl.getLogger().info("Sending chat message.");
                 event.getChannel().ifPresent(channel ->
-                        channel.send(event.getCause().first(Player.class), event.getMessage(), ChatTypes.CHAT));
+                        channel.send(sender, event.getMessage(), ChatTypes.CHAT));
             } else {
                 SpongeImpl.getLogger().info("Chat message cancelled.");
             }
         }
     }
 
-    public void postEvent(MessageChannelEvent.Chat event) {
-        this.eventQueue.add(event);
-    }
-
-    public void kill() {
-        active = false;
+    public void postEvent(Player sender, MessageChannelEvent.Chat event) {
+        this.eventQueue.add(new Tuple<>(sender, event));
     }
 
 }

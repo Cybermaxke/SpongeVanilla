@@ -115,13 +115,14 @@ public abstract class MixinNetHandlerPlayServer implements RemoteConnection, IMi
             cancellable = true, locals = LocalCapture.CAPTURE_FAILHARD)
     private void onProcessChatMessage(C01PacketChatMessage packet, CallbackInfo ci, String s, IChatComponent component) {
         final Text[] message = SpongeTexts.splitChatMessage((ChatComponentTranslation) component); // safe cast
-        final MessageChannel originalChannel = ((Player) this.playerEntity).getMessageChannel();
+        Player sender = (Player) this.playerEntity;
+        final MessageChannel originalChannel = sender.getMessageChannel();
         final MessageChannelEvent.Chat event = SpongeEventFactory.createMessageChannelEventChat(
-                Cause.of(NamedCause.source(this.playerEntity)), originalChannel, Optional.of(originalChannel),
+                Cause.of(NamedCause.source(sender)), originalChannel, Optional.of(originalChannel),
                 new MessageEvent.MessageFormatter(message[0], message[1]), Text.of(s), false
         );
         SpongeImpl.getLogger().info("Processing chat message.");
-        SpongeVanilla.INSTANCE.getChatHandler().postEvent(event);
+        SpongeVanilla.INSTANCE.getChatHandler().postEvent(sender, event);
     }
 
     @Redirect(method = "processChatMessage", at = @At(value = "INVOKE",

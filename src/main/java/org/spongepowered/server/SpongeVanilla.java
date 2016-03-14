@@ -80,6 +80,7 @@ public final class SpongeVanilla extends AbstractPluginContainer {
     public static final SpongeVanilla INSTANCE = new SpongeVanilla();
 
     private final SpongeGame game;
+    public final ChatThread chatThread = new ChatThread();
 
     private SpongeVanilla() {
         Guice.createInjector(new VanillaGuiceModule(this, LogManager.getLogger(SpongeImpl.ECOSYSTEM_NAME))).getInstance(SpongeImpl.class);
@@ -87,6 +88,8 @@ public final class SpongeVanilla extends AbstractPluginContainer {
         this.game = SpongeImpl.getGame();
 
         RegistryHelper.setFinalStatic(Sponge.class, "game", this.game);
+
+        this.chatThread.start();
     }
 
     public static void main(String[] args) {

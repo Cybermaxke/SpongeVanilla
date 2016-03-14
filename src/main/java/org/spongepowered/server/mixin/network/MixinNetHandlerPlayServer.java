@@ -65,7 +65,6 @@ import org.spongepowered.api.event.message.MessageEvent;
 import org.spongepowered.api.network.RemoteConnection;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.channel.MessageChannel;
-import org.spongepowered.api.text.chat.ChatTypes;
 import org.spongepowered.api.util.Direction;
 import org.spongepowered.api.world.extent.Extent;
 import org.spongepowered.asm.mixin.Final;
@@ -79,6 +78,7 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.spongepowered.common.SpongeImpl;
 import org.spongepowered.common.registry.provider.DirectionFacingProvider;
 import org.spongepowered.common.text.SpongeTexts;
+import org.spongepowered.server.SpongeVanilla;
 import org.spongepowered.server.interfaces.IMixinNetHandlerPlayServer;
 import org.spongepowered.server.network.VanillaChannelRegistrar;
 
@@ -120,11 +120,8 @@ public abstract class MixinNetHandlerPlayServer implements RemoteConnection, IMi
                 Cause.of(NamedCause.source(this.playerEntity)), originalChannel, Optional.of(originalChannel),
                 new MessageEvent.MessageFormatter(message[0], message[1]), Text.of(s), false
         );
-        if (!SpongeImpl.postEvent(event) && !event.isMessageCancelled()) {
-            event.getChannel().ifPresent(channel -> channel.send(this.playerEntity, event.getMessage(), ChatTypes.CHAT));
-        } else {
-            ci.cancel();
-        }
+        SpongeImpl.getLogger().info("Processing chat message.");
+        SpongeVanilla.INSTANCE.chatThread.eventQueue.add(event);
     }
 
     @Redirect(method = "processChatMessage", at = @At(value = "INVOKE",
